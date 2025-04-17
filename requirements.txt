@@ -1,0 +1,7 @@
+langchain
+chromadb
+google-generativeai
+pdfplumber
+tqdm
+streamlit
+python-dotenv
