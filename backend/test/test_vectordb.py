@@ -11,7 +11,9 @@ collection = client.get_or_create_collection(name="legal_corpus")
 embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Query
-query = "What is the legal outcome of cases involving dowry disputes where the parties reached a settlement?"
+query = "Can anticipatory bail be denied if the FIR includes serious non-bailable offences?"
+
+
 query_embedding = embedding.embed_query(query)
 
 # Perform similarity search
