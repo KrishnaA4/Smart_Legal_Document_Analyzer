@@ -1,113 +1,120 @@
 import streamlit as st
 import time
-from rag_pipeline import (
-    save_pdf,
-    process_pdf,
-    create_vectorstore,
-    retrieve_docs,
-    answer_query,
-    memory
-)
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import simpleSplit
+from vector_database import index_pdf, upload_pdf
+from rag_pipeline import answer_query, retrieve_docs, llm_model, summarize_document, generate_report
 
-# --- Page Config ---
 st.set_page_config(page_title="⚖️ AI Lawyer", layout="centered")
-st.markdown("<h1 style='text-align: center;'>⚖️ AI Lawyer Chatbot</h1>", unsafe_allow_html=True)
-
-# --- Session State Initialization ---
-default_keys = {
-    "user_queries": [],
-    "ai_responses": [],
-    "vectorstore": None,
-    "chunks": None,
-    "pdf_filename": "",
-    "summary": ""
+st.markdown("""
+    <h1 style='text-align: center;'>⚖️ AI Lawyer Chatbot</h1>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            font-family: Arial, sans-serif;
+        }
+        .stTextArea textarea {
+            font-size: 16px;
+            padding: 10px;
+            background-color: #fff;
+            color: #000;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        .stButton button {
+             background-color: #546e7a; /* Elegant gray */
+             color: white;
+              border-radius: 8px;
+         padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        transition: background-color 0.3s ease;
+        }
+.stButton button:hover {
+    background-color: #455a64; /* Darker shade on hover */
 }
-for key, value in default_keys.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
 
-# --- Upload PDF ---
+        .summary-box {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-left: 4px solid #0d6efd;
+            border-radius: 6px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Session state initialization
+if "user_queries" not in st.session_state:
+    st.session_state.user_queries = []
+if "ai_responses" not in st.session_state:
+    st.session_state.ai_responses = []
+if "vectorstore" not in st.session_state:
+    st.session_state.vectorstore = None
+if "chunks" not in st.session_state:
+    st.session_state.chunks = None
+if "pdf_filename" not in st.session_state:
+    st.session_state.pdf_filename = ""
+if "summary" not in st.session_state:
+    st.session_state.summary = ""
+
+# Upload PDF
 uploaded_file = st.file_uploader("📄 Upload a legal document (PDF)", type="pdf")
 
 if uploaded_file:
     current_file_name = uploaded_file.name
     if st.session_state.pdf_filename != current_file_name:
         st.success(f"📄 Uploaded: {current_file_name}")
-        pdf_path = save_pdf(uploaded_file)
+        file_path = upload_pdf(uploaded_file)
         st.session_state.pdf_filename = current_file_name
 
         with st.spinner("🔍 Processing document..."):
-            chunks = process_pdf(pdf_path)
-            vectorstore = create_vectorstore(chunks)
-
-            # ✅ Cache for session
-            st.session_state.chunks = chunks
-            st.session_state.vectorstore = vectorstore
-            st.session_state.summary = ""  # reset summary if new doc
+            index_pdf(file_path)  # indexes into Chroma by file-based collection name
             time.sleep(1)
             st.success("✅ Document ready for querying!")
 
-# --- Summarization ---
+        # Clear session history when switching document
+        st.session_state.user_queries = []
+        st.session_state.ai_responses = []
+        st.session_state.summary = ""
+
+# Summarize
 if st.button("📜 Summarize Document"):
-    if st.session_state.vectorstore:
+    if uploaded_file:
         with st.spinner("📖 Generating summary..."):
-            retrieved = retrieve_docs(st.session_state.vectorstore, "Summarize this document")
-            summary = answer_query("Summarize this document", retrieved, memory)
-            st.session_state.summary = summary  # ✅ Store summary in session
+            docs = retrieve_docs("Summarize this document", uploaded_file.name)
+            summary = summarize_document(docs)
+            st.session_state.summary = summary
     else:
         st.error("❌ Please upload a document first.")
 
-# --- Display Summary if available ---
 if st.session_state.summary:
     st.markdown("### 📝 Summary:")
-    st.markdown(f"<div style='background:#f0f0f0;padding:10px;border-radius:10px'>{st.session_state.summary}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='summary-box'>{st.session_state.summary}</div>", unsafe_allow_html=True)
 
-# --- Chat Interface ---
+# Chat Interface
 query = st.text_area("💬 Ask a legal question:", height=100)
 if st.button("🔍 Ask AI Lawyer"):
-    if not st.session_state.vectorstore:
-        st.error("Please upload a document first.")
+    if not uploaded_file:
+        st.error("❌ Please upload a document first.")
     elif not query.strip():
-        st.warning("Please enter a valid question.")
+        st.warning("⚠️ Please enter a valid question.")
     else:
         with st.spinner("🤔 Thinking..."):
-            docs = retrieve_docs(st.session_state.vectorstore, query)
-            response = answer_query(query, docs, memory)
-
-            # Store in chat history
+            docs = retrieve_docs(query, uploaded_file.name)
+            response = answer_query(docs, llm_model, query)
+            st.chat_message("user").write(query)
+            st.chat_message("AI Lawyer").write(response)
             st.session_state.user_queries.append(query)
             st.session_state.ai_responses.append(response)
 
-# --- Show Full Chat History ---
+# Chat History
 if st.session_state.user_queries:
     st.markdown("### 🧠 Chat History")
     for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
         st.chat_message("user").write(q)
         st.chat_message("AI Lawyer").write(a)
 
-# --- Download Report ---
+# Report download
 if st.session_state.user_queries and st.button("📥 Download Q&A Report"):
-    pdf_path = "AI_Lawyer_Report.pdf"
-    c = canvas.Canvas(pdf_path, pagesize=letter)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(100, 750, "AI Lawyer Report")
-    c.setFont("Helvetica", 12)
-    c.drawString(100, 730, "Conversation Summary:")
-
-    y = 700
-    for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
-        q_lines = simpleSplit(f"Q: {q}", "Helvetica-Bold", 12, 450)
-        a_lines = simpleSplit(f"A: {a}", "Helvetica", 12, 450)
-        for line in q_lines + a_lines:
-            c.drawString(100, y, line)
-            y -= 15
-            if y < 50:
-                c.showPage()
-                y = 750
-    c.save()
-
-    with open(pdf_path, "rb") as file:
+    report_path = generate_report(st.session_state.user_queries, st.session_state.ai_responses)
+    with open(report_path, "rb") as file:
         st.download_button("📄 Download Report", data=file, file_name="AI_Lawyer_Report.pdf", mime="application/pdf")
