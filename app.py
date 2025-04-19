@@ -100,7 +100,10 @@ if st.button("🔍 Ask AI Lawyer"):
     else:
         with st.spinner("🤔 Thinking..."):
             docs = retrieve_docs(query, uploaded_file.name)
-            response = answer_query(docs, llm_model, query)
+            history = ""
+            for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
+                  history += f"User: {q}\nAI: {a}\n"
+            response = answer_query(docs, llm_model, query, history)
             st.chat_message("user").write(query)
             st.chat_message("AI Lawyer").write(response)
             st.session_state.user_queries.append(query)
