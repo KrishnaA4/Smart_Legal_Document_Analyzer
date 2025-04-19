@@ -1,4 +1,6 @@
 import os
+import csv
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
@@ -6,7 +8,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 from vector_database import retrieve_docs as retrieve_filtered_docs
-import csv
+from logger import logger
 from datetime import datetime
 
 load_dotenv()
@@ -41,32 +43,38 @@ def answer_query(documents, model, query, history=""):
     context = get_context(documents)
     prompt = ChatPromptTemplate.from_template(custom_prompt_template)
     chain = prompt | model
-    response = chain.invoke({"question": query, "context": context, "history": history})
 
-    # Extract usage metadata
-    usage = getattr(response, "usage_metadata", None)
-    input_tokens = usage.get("input_tokens", 0) if usage else 0
-    output_tokens = usage.get("output_tokens", 0) if usage else 0
-    total_tokens = input_tokens + output_tokens
-    cost = round((input_tokens * COST_PER_1K_INPUT + output_tokens * COST_PER_1K_OUTPUT) / 1000, 6)
+    try:
+        response = chain.invoke({"question": query, "context": context, "history": history})
 
-    # Write to CSV
-    log_row = {
-        "timestamp": datetime.now().isoformat(),
-        "model":"gemini-1.5-pro-002",
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens,
-        "cost_usd": cost
-    }
+        # Extract usage metadata
+        usage = getattr(response, "usage_metadata", None)
+        input_tokens = usage.get("input_tokens", 0) if usage else 0
+        output_tokens = usage.get("output_tokens", 0) if usage else 0
+        total_tokens = input_tokens + output_tokens
+        cost = round((input_tokens * COST_PER_1K_INPUT + output_tokens * COST_PER_1K_OUTPUT) / 1000, 6)
 
-    file_exists = os.path.isfile(CSV_LOG_PATH)
-    with open(CSV_LOG_PATH, mode="a", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=log_row.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(log_row)
+        # Write to CSV
+        log_row = {
+           "timestamp": datetime.now().isoformat(),
+           "model":"gemini-1.5-pro-002",
+           "input_tokens": input_tokens,
+           "output_tokens": output_tokens,
+           "total_tokens": total_tokens,
+           "cost_usd": cost
+        }
 
+        file_exists = os.path.isfile(CSV_LOG_PATH)
+        with open(CSV_LOG_PATH, mode="a", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=log_row.keys())
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(log_row)
+        logger.info(f"Answer generated. Tokens: {total_tokens}, Cost: ${cost}")
+    except Exception as e:
+        logger.exception("Failed to generate response.")
+        return "❌ An error occurred while answering your question."
+         
     return response.content if hasattr(response, "content") else str(response)
 
 def summarize_document(documents):
@@ -82,32 +90,38 @@ def summarize_document(documents):
     """
     prompt = ChatPromptTemplate.from_template(summary_prompt)
     chain = prompt | llm_model
-    response = chain.invoke({"context": context})
+
+    try:
+        response = chain.invoke({"context": context})
+
+        # Extract usage metadata
+        usage = getattr(response, "usage_metadata", None)
+        input_tokens = usage.get("input_tokens", 0) if usage else 0
+        output_tokens = usage.get("output_tokens", 0) if usage else 0
+        total_tokens = input_tokens + output_tokens
+        cost = round((input_tokens * COST_PER_1K_INPUT + output_tokens * COST_PER_1K_OUTPUT) / 1000, 6)
+
+        # Write to CSV
+        log_row = {
+             "timestamp": datetime.now().isoformat(),
+             "model":"gemini-1.5-pro-002",
+             "input_tokens": input_tokens,
+             "output_tokens": output_tokens,
+             "total_tokens": total_tokens,
+             "cost_usd": cost
+        }
+
+        file_exists = os.path.isfile(CSV_LOG_PATH)
+        with open(CSV_LOG_PATH, mode="a", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=log_row.keys())
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(log_row)
+        logger.info(f"Document summarized. Tokens: {total_tokens}, Cost: ${cost}")
+    except Exception as e:
+        logger.exception("Failed to summarize document.")
+        return "❌ An error occurred while summarizing the document."
     
-    # Extract usage metadata
-    usage = getattr(response, "usage_metadata", None)
-    input_tokens = usage.get("input_tokens", 0) if usage else 0
-    output_tokens = usage.get("output_tokens", 0) if usage else 0
-    total_tokens = input_tokens + output_tokens
-    cost = round((input_tokens * COST_PER_1K_INPUT + output_tokens * COST_PER_1K_OUTPUT) / 1000, 6)
-
-    # Write to CSV
-    log_row = {
-        "timestamp": datetime.now().isoformat(),
-        "model":"gemini-1.5-pro-002",
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens,
-        "cost_usd": cost
-    }
-
-    file_exists = os.path.isfile(CSV_LOG_PATH)
-    with open(CSV_LOG_PATH, mode="a", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=log_row.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(log_row)
-
     return response.content if hasattr(response, "content") else str(response)
 
 
@@ -130,4 +144,5 @@ def generate_report(user_queries, ai_responses):
                 c.showPage()
                 y = 750
     c.save()
+    logger.info("Chat report generated as PDF.")
     return pdf_path

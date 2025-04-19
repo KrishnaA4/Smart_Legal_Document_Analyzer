@@ -4,6 +4,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from chromadb import PersistentClient
+from logger import logger
+
 
 pdfs_directory = 'pdfs/'
 CHROMA_DB_DIR = "vectorstore/db_chroma"
@@ -15,6 +17,7 @@ def upload_pdf(file):
     file_path = os.path.join(pdfs_directory, file.name)
     with open(file_path, "wb") as f:
         f.write(file.getbuffer())
+    logger.info(f"PDF saved to: {file_path}")
     return file_path
 
 # Load PDF and split
@@ -46,6 +49,7 @@ def sanitize_collection_name(file_name):
 def index_pdf(file_path):
     file_name = os.path.basename(file_path)
     collection_name = sanitize_collection_name(file_name)  # ✅ Safe collection name
+    logger.info(f"Indexing collection: {collection_name}")
     documents = load_pdf(file_path)
     chunks = create_chunks(documents, file_name)
     db = Chroma.from_documents(
@@ -54,6 +58,7 @@ def index_pdf(file_path):
         collection_name=collection_name,
         client=client
     )
+    logger.info(f"Indexed {len(chunks)} chunks for {file_name}")
     return db
 
 def retrieve_docs(query, file_name):
@@ -63,5 +68,6 @@ def retrieve_docs(query, file_name):
         collection_name=collection_name,
         embedding_function=embedding_model
     )
+    logger.info(f"Retrieving docs for query: '{query}' from collection: {collection_name}")
     return db.similarity_search(query, k=5)
 

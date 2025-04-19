@@ -2,6 +2,7 @@ import streamlit as st
 import time
 from vector_database import index_pdf, upload_pdf
 from rag_pipeline import answer_query, retrieve_docs, llm_model, summarize_document, generate_report
+from logger import logger
 
 st.set_page_config(page_title="⚖️ AI Lawyer", layout="centered")
 st.markdown("""
@@ -63,15 +64,18 @@ if uploaded_file:
     current_file_name = uploaded_file.name
     if st.session_state.pdf_filename != current_file_name:
         st.success(f"📄 Uploaded: {current_file_name}")
-        file_path = upload_pdf(uploaded_file)
-        st.session_state.pdf_filename = current_file_name
-
-        with st.spinner("🔍 Processing document..."):
-            index_pdf(file_path)  # indexes into Chroma by file-based collection name
-            time.sleep(1)
+        logger.info(f"User uploaded document: {current_file_name}")
+        try:
+            file_path = upload_pdf(uploaded_file)
+            st.session_state.pdf_filename = current_file_name
+            with st.spinner("🔍 Processing document..."):
+                index_pdf(file_path)
+                time.sleep(1)
+                logger.info(f"Document indexed: {file_path}")
             st.success("✅ Document ready for querying!")
+        except Exception as e:
+            logger.exception("Failed to process uploaded document")
 
-        # Clear session history when switching document
         st.session_state.user_queries = []
         st.session_state.ai_responses = []
         st.session_state.summary = ""
@@ -99,15 +103,19 @@ if st.button("🔍 Ask AI Lawyer"):
         st.warning("⚠️ Please enter a valid question.")
     else:
         with st.spinner("🤔 Thinking..."):
-            docs = retrieve_docs(query, uploaded_file.name)
-            history = ""
-            for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
-                  history += f"User: {q}\nAI: {a}\n"
-            response = answer_query(docs, llm_model, query, history)
-            st.chat_message("user").write(query)
-            st.chat_message("AI Lawyer").write(response)
-            st.session_state.user_queries.append(query)
-            st.session_state.ai_responses.append(response)
+            try:
+                docs = retrieve_docs(query, uploaded_file.name)
+                history = ""
+                for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
+                    history += f"User: {q}\nAI: {a}\n"
+                response = answer_query(docs, llm_model, query, history)
+                st.chat_message("user").write(query)
+                st.chat_message("AI Lawyer").write(response)
+                st.session_state.user_queries.append(query)
+                st.session_state.ai_responses.append(response)
+                logger.info(f"Query answered successfully. Query: {query}")
+            except Exception as e:
+                logger.exception("Error while answering query.")
 
 # Chat History
 if st.session_state.user_queries:
@@ -121,3 +129,4 @@ if st.session_state.user_queries and st.button("📥 Download Q&A Report"):
     report_path = generate_report(st.session_state.user_queries, st.session_state.ai_responses)
     with open(report_path, "rb") as file:
         st.download_button("📄 Download Report", data=file, file_name="AI_Lawyer_Report.pdf", mime="application/pdf")
+        logger.info("User downloaded chat report.")
