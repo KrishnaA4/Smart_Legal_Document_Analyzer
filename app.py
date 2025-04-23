@@ -34,12 +34,12 @@ st.markdown("""
     background-color: #455a64; /* Darker shade on hover */
 }
 
-        .summary-box {
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-left: 4px solid #0d6efd;
-            border-radius: 6px;
-        }
+       .summary-box {
+    background-color: transparent;
+    padding: 10px;
+    border-left: 4px solid #0d6efd;
+    border-radius: 6px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -120,9 +120,10 @@ if st.button("🔍 Ask AI Lawyer"):
 # Chat History
 if st.session_state.user_queries:
     st.markdown("### 🧠 Chat History")
-    for q, a in zip(st.session_state.user_queries, st.session_state.ai_responses):
-        st.chat_message("user").write(q)
-        st.chat_message("AI Lawyer").write(a)
+    for i, (q, a) in enumerate(zip(st.session_state.user_queries, st.session_state.ai_responses), start=1):
+        with st.expander(f"🗨️ Q{i}: {q[:80]}..."):
+            st.markdown(f"**User:** {q}")
+            st.markdown(f"**AI Lawyer:** {a}")
 
 # Report download
 if st.session_state.user_queries and st.button("📥 Download Q&A Report"):
@@ -130,3 +131,40 @@ if st.session_state.user_queries and st.button("📥 Download Q&A Report"):
     with open(report_path, "rb") as file:
         st.download_button("📄 Download Report", data=file, file_name="AI_Lawyer_Report.pdf", mime="application/pdf")
         logger.info("User downloaded chat report.")
+
+
+# ===============================
+# 📊 Token & Cost Usage Dashboard
+# ===============================
+import pandas as pd
+
+if st.sidebar.checkbox("📊 Show Token/Cost Analytics"):
+    try:
+        df = pd.read_csv("chat_logs.csv")
+
+        # Convert timestamp if necessary
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # Basic Stats
+        total_queries = len(df)
+        total_tokens = df["total_tokens"].sum()
+        total_cost = df["cost_usd"].sum()
+        avg_tokens = total_tokens / total_queries if total_queries else 0
+        avg_cost = total_cost / total_queries if total_queries else 0
+
+        # Sidebar metrics
+        st.sidebar.markdown("## 📈 Summary")
+        st.sidebar.metric("🧾 Total Queries", total_queries)
+        st.sidebar.metric("🔢 Total Tokens", int(total_tokens))
+        st.sidebar.metric("💰 Total Cost ($)", round(total_cost, 5))
+        st.sidebar.metric("🔠 Avg. Tokens/Query", int(avg_tokens))
+        st.sidebar.metric("💸 Avg. Cost/Query ($)", round(avg_cost, 5))
+
+        # Table (optional)
+        st.subheader("🧾 Query Log Summary")
+        st.dataframe(df[["timestamp", "model", "input_tokens", "output_tokens", "total_tokens", "cost_usd"]])
+
+    except Exception as e:
+        st.sidebar.warning("⚠️ Failed to load chat logs")
+        st.sidebar.error(str(e))
+

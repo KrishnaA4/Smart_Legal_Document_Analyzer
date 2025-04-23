@@ -26,18 +26,24 @@ def retrieve_docs(query, file_name):
 def get_context(documents):
     return "\n\n".join(doc.page_content for doc in documents)
 
+
 custom_prompt_template = """
-Use the pieces of information provided in the context and previous conversation history to answer the user's question.
-If you don't know the answer, just say that you don't know, don't try to make up an answer. 
-Don't provide anything out of the given context.
+You are an AI legal assistant. Use only the information provided in the context and previous conversation history to answer the user's question.
+
+Do NOT use any external knowledge. If the answer is not present in the given context, simply say "I don't know based on the document."
+
+Context:
+{context}
 
 Previous Conversation:
 {history}
 
-Question: {question} 
-Context: {context} 
+Question:
+{question}
+
 Answer:
 """
+
 
 def answer_query(documents, model, query, history=""):
     context = get_context(documents)
