@@ -1,4 +1,4 @@
-                                                                           ⚖️ Smart Legal Document Analysis Platform
+                                                                ⚖️ Smart Legal Document Analysis Platform
 An advanced RAG-based AI application that allows uploading legal PDFs, summarizing, asking queries, tracking usage costs, and analyzing API token consumption, built with Google Gemini 1.5 Pro, ChromaDB, and Streamlit.
 
 🚀 Features
@@ -30,20 +30,16 @@ Analytics	pandas, matplotlib (optional)
 📂 Folder Structure
 
 smart-legal-rag/
-│
 ├── app.py                  # Streamlit frontend application
 ├── rag_pipeline.py         # Core RAG logic (summarize, query, analytics)
 ├── vector_database.py      # Document upload, chunking, vectorstore operations
 ├── logger.py                # Centralized logging configuration
-│
 ├── pdfs/                    # Uploaded PDFs
 ├── vectorstore/db_chroma/   # ChromaDB persistent storage
 ├── chat_logs.csv            # API token & cost tracking
 ├── logs/legal_rag.log       # Application logs
-│
 ├── requirements.txt         # Python dependencies
 ├── README.md                # Project documentation
-│
 └── .env                     # Gemini API key (not pushed)
 
 
