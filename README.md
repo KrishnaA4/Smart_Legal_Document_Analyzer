@@ -1,13 +1,13 @@
 <body>
-    <h1>⚖️ AI Lawyer - RAG with DeepSeek R1</h1>
+    <h1>⚖️ AI Lawyer - RAG</h1>
      <p>An AI-powered legal chatbot that leverages Retrieval-Augmented Generation (RAG) with <strong>DeepSeek R1</strong> and <strong>Ollama</strong> for advanced legal reasoning.</p>
     <p>This chatbot is designed to assist users in understanding complex legal documents, retrieving relevant case laws, and providing structured legal insights. By integrating DeepSeek R1, a sophisticated reasoning model, with the RAG framework, AI Lawyer ensures that responses are grounded in factual legal texts, reducing hallucinations and enhancing reliability. The chatbot can process large legal documents, break them down into meaningful sections, and retrieve the most pertinent information to answer user queries accurately.</p>
     
    <h2> Features</h2>
     <ul>
         <li>📂 Upload and analyze legal documents (PDFs)</li>
-        <li>🔍 Retrieve relevant legal information using FAISS vector database</li>
-        <li>🤖 Answer legal questions using DeepSeek R1 with Groq</li>
+        <li>🔍 Retrieve relevant legal information using Chroma vector database</li>
+        <li>🤖 Answer legal questions using gemini-1.5-pro</li>
         <li>📜 Summarize legal documents</li>
         <li>📄 Generate downloadable AI-generated legal reports</li>
     </ul>
@@ -37,11 +37,10 @@ https://github.com/user-attachments/assets/003b6247-9faa-4c9a-b9b6-e1311d1d61d5
     
   <h2>🛠️ Technologies Used</h2>
     <ul>
-        <li><strong>DeepSeek R1</strong> - AI model for complex reasoning</li>
-        <li><strong>Ollama</strong> - Local LLM hosting</li>
+        <li><strong>gemini-1.5-pro</strong> - AI model for complex reasoning</li>
         <li><strong>LangChain</strong> - AI framework for LLM applications</li>
         <li><strong>Streamlit</strong> - Frontend UI for chatbot</li>
-        <li><strong>FAISS</strong> - Vector search for document retrieval</li>
+        <li><strong>Chroma</strong> - Vector search for document retrieval</li>
         <li><strong>pdfplumber</strong> - PDF document processing</li>
     </ul>
     
@@ -50,7 +49,7 @@ https://github.com/user-attachments/assets/003b6247-9faa-4c9a-b9b6-e1311d1d61d5
 <h3>1️⃣ Clone the Repository</h3>
 <pre>
 git clone https://github.com/AbhaySingh71/AI-Lawyer-RAG-with-Deepseek.git
-cd AI-Lawyer-RAG-with-Deepseek
+cd AI-Lawyer-RAG
 </pre>
 
 <h3>2️⃣ Set Up the Virtual Environment</h3>
@@ -76,7 +75,7 @@ git push origin main
 <h3>2️⃣ Deploy on Streamlit</h3>
 <ul>
   <li>Go to <a href="https://share.streamlit.io/">Streamlit Cloud</a> → Deploy a new app.</li>
-  <li>Set <code>GROQ_API_KEY</code> in Streamlit Secrets.</li>
+  <li>Set <code>GOOGLE_API_KEY</code> in Streamlit Secrets.</li>
   <li>Click <strong>Deploy!</strong> 🎉</li>
 </ul>
 
@@ -92,9 +91,9 @@ git push origin main
    <h2>📜 How It Works</h2>
     <ol>
         <li><strong>Upload PDF:</strong> Documents are uploaded and processed.</li>
-        <li><strong>Vector Database:</strong> FAISS indexes the document text.</li>
+        <li><strong>Vector Database:</strong> Chroma indexes the document text.</li>
         <li><strong>Query Handling:</strong> AI retrieves relevant information.</li>
-        <li><strong>LLM Response:</strong> DeepSeek R1 generates answers.</li>
+        <li><strong>LLM Response:</strong> gemini llm generates answers.</li>
         <li><strong>Report Generation:</strong> AI generates a downloadable PDF report.</li>
     </ol>
 
@@ -113,14 +112,9 @@ The app is deployed on **Streamlit**! You can check out the live version and exp
  <h2>📬 Contact Us</h2>
 <p>Have questions or need support? Reach out to us at:</p>
 <ul>
-  <li>📧 <a href="mailto:abhaysingh71711@gmail.com">abhaysingh71711@gmail.com</a></li>
+  <li>📧 <a href="mailto:kvenkatakrishna116@gmail.com">kvenkatakrishna116@gmail.com</a></li>
 </ul>
 
 ---
 
-<h2>🌐 Connect With Me</h2>
-<p align="center">
-  <a href="https://github.com/abhaysingh71" target="_blank">🐙 GitHub</a> |
-  <a href="https://www.linkedin.com/in/abhay-singh-050a5b293/" target="_blank">🔗 LinkedIn</a> |
-  <a href="https://x.com/AbhaySingh71711" target="_blank">🐦 Twitter</a>
-</p>
+
